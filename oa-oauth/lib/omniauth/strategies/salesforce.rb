@@ -14,37 +14,20 @@ module OmniAuth
       # @param [String] client_secret the application secret as registered on Facebook
       # @option options [String] :scope ('email,offline_access') comma-separated extended permissions such as `email` and `manage_pages`
       def initialize(app, client_id = nil, client_secret = nil, options = {}, &block)
-        super(app, :salesforce, client_id, client_secret, {:site => 'https://login.salesforce.com/'}, options, &block)
+        options[:response_type] = "code"
+        super(app, :salesforce, client_id, client_secret, 
+                { :site => 'https://login.salesforce.com/',
+                  :authorize_path => "/services/oauth2/authorize"}, options)
       end
-      
-      # def user_data
-      #   @data ||= MultiJson.decode(@access_token.get('/me', {}, { "Accept-Language" => "en-us,en;"}))
-      # end
-      # 
-      # def request_phase
-      #   options[:scope] ||= "email,offline_access"
-      #   super
-      # end
-      # 
-      # def user_info
-      #   {
-      #     'nickname' => user_data["link"].split('/').last,
-      #     'email' => (user_data["email"] if user_data["email"]),
-      #     'first_name' => user_data["first_name"],
-      #     'last_name' => user_data["last_name"],
-      #     'name' => "#{user_data['first_name']} #{user_data['last_name']}",
-      #     'image' => "http://graph.facebook.com/#{user_data['id']}/picture?type=square",
-      #     'urls' => {
-      #       'Facebook' => user_data["link"],
-      #       'Website' => user_data["website"],
-      #     }
-      #   }
-      # end
+
+      def user_data
+        @data ||= MultiJson.decode(@access_token.get('/services/oauth2/token', {:grant_type => "authorization_code"}))
+      end
       
       def auth_hash
         OmniAuth::Utils.deep_merge(super, {
-          'uid' => user_data['id'],
-          'user_info' => user_info,
+          'access_token' => user_data['access_token'],
+          'instance_url' => user_data['instance_url'],
           'extra' => {'user_hash' => user_data}
         })
       end
